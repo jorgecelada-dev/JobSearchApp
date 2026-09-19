@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum JobSource {
+  infojobs
+  jobtoday
+  company_site // ATS conocida o página de empleo parseada con IA
+  linkedin_manual
+}
+
+enum ApplicationMethod {
+  email
+  autofill
+}
+
+enum ApplicationStatus {
+  pendiente_revision
+  enviada
+  rechazada
+  entrevista
+}
+
+/// Empresa local monitorizada (origen: Google Places).
+model Company {
+  id            Int          @id @default(autoincrement())
+  name          String
+  placeId       String?      @unique // Google Places place_id
+  website       String?
+  address       String?
+  zone          String? // Tres Cantos, Alcobendas...
+  category      String?
+  careersUrl    String? // página "trabaja con nosotros" detectada
+  atsType       String? // greenhouse | lever | personio | factorial | workable | join
+  atsIdentifier String? // slug/board token de la ATS
+  lastCheckedAt DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  jobPostings   JobPosting[]
+}
+
+/// Uno de los 3 perfiles de CV.
+model Profile {
+  id           Int           @id @default(autoincrement())
+  slug         String        @unique // web_designer | extracurricular_teacher | sales
+  name         String
+  description  String // resumen que se pasa a la IA para clasificar
+  cvPath       String // ruta al PDF del CV
+  tone         String // tono de redacción del email/carta
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  matchedJobs  JobPosting[]
+  applications Application[]
+}
+
+/// Todo lo descubierto, se llegue a aplicar o no.
+model JobPosting {
+  id               Int          @id @default(autoincrement())
+  source           JobSource
+  externalId       String
+  title            String
+  description      String?
+  url              String
+  location         String?
+  companyName      String? // texto libre (InfoJobs/Jobtoday sin Company monitorizada)
+  contactEmail     String? // si la oferta se aplica por email
+  publishedAt      DateTime?
+  discoveredAt     DateTime     @default(now())
+  companyId        Int?
+  company          Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  matchedProfileId Int?
+  matchedProfile   Profile?     @relation(fields: [matchedProfileId], references: [id], onDelete: SetNull)
+  matchScore       Float? // 0-100, rellenado por la IA
+  classifiedAt     DateTime?
+  application      Application?
+
+  @@unique([source, externalId])
+  @@index([matchedProfileId, matchScore])
+  @@index([companyId])
+}
+
+/// Candidatura preparada/enviada. Separada de JobPosting para mantener el histórico limpio.
+model Application {
+  id           Int               @id @default(autoincrement())
+  jobPostingId Int               @unique
+  jobPosting   JobPosting        @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  profileId    Int
+  profile      Profile           @relation(fields: [profileId], references: [id])
+  method       ApplicationMethod
+  draftSubject String?
+  draftContent String // generado por IA
+  status       ApplicationStatus @default(pendiente_revision)
+  sentAt       DateTime?
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([status])
+}

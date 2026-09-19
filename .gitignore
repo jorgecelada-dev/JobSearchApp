@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.db
+*.db-journal
+src/generated/
+cvs/*
+!cvs/.gitkeep
+.DS_Store
+*.log
+playwright-report/
+test-results/
