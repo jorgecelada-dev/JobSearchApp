@@ -102,3 +102,9 @@ model Application {
 
   @@index([status])
 }
+
+/// Ajustes no secretos (p. ej. tu nombre para la firma). Los secretos van al llavero.
+model Setting {
+  key   String @id
+  value String
+}
