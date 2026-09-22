@@ -15,10 +15,10 @@ const TERMS = [
 ];
 
 const termRe = (t: string) => new RegExp(`(?<![a-z0-9])${t.replace(/ /g, "[ _-]")}(?![a-z0-9])`);
-const TERM_RES = TERMS.map(termRe);
 
-/** Enlaces de la página que parecen llevar a la sección de empleo, mejores primero. */
-export function findCareersLinks(html: string, baseUrl: string): CareersLink[] {
+/** Enlaces de la página cuyo texto o URL contienen alguno de los términos, mejores primero. */
+export function findLinksByTerms(html: string, baseUrl: string, terms: string[]): CareersLink[] {
+  const TERM_RES = terms.map(termRe);
   const $ = cheerio.load(html);
   const found = new Map<string, CareersLink>();
 
@@ -47,3 +47,6 @@ export function findCareersLinks(html: string, baseUrl: string): CareersLink[] {
 
   return [...found.values()].sort((a, b) => b.score - a.score);
 }
+
+/** Enlaces de la página que parecen llevar a la sección de empleo, mejores primero. */
+export const findCareersLinks = (html: string, baseUrl: string) => findLinksByTerms(html, baseUrl, TERMS);

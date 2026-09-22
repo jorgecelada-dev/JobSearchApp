@@ -28,6 +28,12 @@ export async function politeFetch(url: string, init: RequestInit = {}): Promise<
   return res;
 }
 
-export const fetchText = async (url: string) => (await politeFetch(url)).text();
+/** Solo páginas de texto: un PDF o una imagen leídos como texto producen basura (falsos emails, etc.). */
+export async function fetchText(url: string): Promise<string> {
+  const res = await politeFetch(url);
+  const type = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+  if (type && !/^text\/|xml|json/.test(type)) throw new Error(`No es una página web (${type}): ${url}`);
+  return res.text();
+}
 export const fetchJson = async <T>(url: string) =>
   (await politeFetch(url, { headers: { Accept: "application/json" } })).json() as Promise<T>;

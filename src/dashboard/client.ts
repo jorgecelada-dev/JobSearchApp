@@ -1,4 +1,4 @@
-import type { Application, ProfileCv, SmtpStatus, Status } from "./types.js";
+import type { Application, InvestigateResult, LinkedInGroup, ProfileCv, SmtpStatus, Status } from "./types.js";
 
 /** Los errores del servidor traen `{ error }` en español: se muestran tal cual. */
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -44,3 +44,12 @@ export const uploadCv = (slug: string, file: File) => {
   form.append("file", file);
   return request<ProfileCv>(`/api/profiles/${slug}/cv`, { method: "PUT", body: form });
 };
+
+export const linkedinSearches = (location: string, hours: number) =>
+  request<LinkedInGroup[]>(`/api/linkedin/searches?location=${encodeURIComponent(location)}&hours=${hours}`);
+export const addLinkedInOffer = (v: {
+  url: string; title: string; company: string; location?: string; description?: string; profileSlug?: string;
+}) => request<Application>("/api/linkedin/offers", send("POST", v));
+
+export const investigateCompany = (v: { name: string; website: string; profileSlug?: string }) =>
+  request<InvestigateResult>("/api/companies/investigate", send("POST", v));

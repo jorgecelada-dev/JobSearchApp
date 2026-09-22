@@ -37,7 +37,7 @@ export async function sendApplication(id: number, toRaw: string) {
   const app = await prisma.application.findUnique({ where: { id }, include });
   if (!app) throw new SendError("Candidatura no encontrada", 404);
   if (app.status !== "pendiente_revision") throw new SendError("Esta candidatura ya no está pendiente", 409);
-  if (app.method !== "email") throw new SendError("Es una candidatura de formulario, no de email");
+  if (app.method !== "email") throw new SendError("Esta candidatura no es de email: la solicitas tú en su web o en LinkedIn");
   if (app.jobPosting.title.startsWith("[DEMO]")) throw new SendError("Es una candidatura de demostración: no se envía");
   if (app.draftContent.includes(NAME_PLACEHOLDER)) throw new SendError(`Falta tu nombre en la firma (${NAME_PLACEHOLDER})`);
 

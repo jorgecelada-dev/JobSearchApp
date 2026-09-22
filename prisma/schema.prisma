@@ -17,6 +17,7 @@ enum JobSource {
 enum ApplicationMethod {
   email
   autofill
+  manual // la solicitas tú a mano (p. ej. LinkedIn): la herramienta solo guarda enlace y borrador
 }
 
 enum ApplicationStatus {
@@ -28,20 +29,25 @@ enum ApplicationStatus {
 
 /// Empresa local monitorizada (origen: Google Places).
 model Company {
-  id            Int          @id @default(autoincrement())
-  name          String
-  placeId       String?      @unique // Google Places place_id
-  website       String?
-  address       String?
-  zone          String? // Tres Cantos, Alcobendas...
-  category      String?
-  careersUrl    String? // página "trabaja con nosotros" detectada
-  atsType       String? // greenhouse | lever | personio | factorial | workable | join
-  atsIdentifier String? // slug/board token de la ATS
-  lastCheckedAt DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  jobPostings   JobPosting[]
+  id                    Int          @id @default(autoincrement())
+  name                  String
+  placeId               String?      @unique // Google Places place_id
+  website               String?
+  address               String?
+  zone                  String? // Tres Cantos, Alcobendas...
+  category              String?
+  careersUrl            String? // página "trabaja con nosotros" detectada
+  atsType               String? // greenhouse | lever | personio | factorial | workable | join
+  atsIdentifier         String? // slug/board token de la ATS
+  lastCheckedAt         DateTime?
+  // Mejor email de contacto encontrado en su web (candidaturas espontáneas)
+  contactEmail          String?
+  contactEmailScore     Int? // más alto = más fiable para enviar un CV
+  contactEmailNote      String? // por qué se eligió y dónde se encontró
+  contactEmailCheckedAt DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  jobPostings           JobPosting[]
 }
 
 /// Uno de los 3 perfiles de CV.

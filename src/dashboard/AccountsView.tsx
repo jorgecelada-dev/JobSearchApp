@@ -173,7 +173,7 @@ export function AccountsView() {
       <section className="card">
         <h2>Otras cuentas</h2>
         <p className="muted"><strong>InfoJobs</strong> · próximamente: se conectará con OAuth2, escribiendo tu contraseña solo en la web de InfoJobs.</p>
-        <p className="muted"><strong>LinkedIn</strong> · no se conecta, a propósito: automatizarlo viola sus condiciones y pone en riesgo tu cuenta.</p>
+        <p className="muted"><strong>LinkedIn</strong> · no se conecta, a propósito: automatizarlo viola sus condiciones y pone en riesgo tu cuenta. Se usa a mano desde la pestaña «LinkedIn».</p>
       </section>
       <section className="card">
         <h2>Dónde se guardan tus datos</h2>

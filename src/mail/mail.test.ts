@@ -104,7 +104,7 @@ test("rechaza destinatario inválido, demo, firma sin rellenar y formulario", as
   await rejects(sendApplication((await makeApp()).id, "no-es-un-email"), /no es un email válido/);
   await rejects(sendApplication((await makeApp({ title: "[DEMO] Algo" })).id, "a@b.es"), /demostración/);
   await rejects(sendApplication((await makeApp({ draft: "Un saludo,\n[Tu nombre]" })).id, "a@b.es"), /Falta tu nombre/);
-  await rejects(sendApplication((await makeApp({ method: "autofill" })).id, "a@b.es"), /formulario/);
+  await rejects(sendApplication((await makeApp({ method: "autofill" })).id, "a@b.es"), /no es de email/);
   await rejects(sendApplication(999999, "a@b.es"), /no encontrada/);
 });
 

@@ -51,19 +51,24 @@ export function buildDraft(
   job: DraftJob,
   method: "email" | "autofill",
   applicantName?: string | null,
+  opts: { spontaneous?: boolean } = {},
 ): Draft {
   const voice = VOICES[profileSlug] ?? FALLBACK;
   const company = job.companyName?.trim();
   const greeting = company ? `Estimado equipo de ${company}:` : "Buenas:";
   const cv = method === "email" ? " Adjunto mi CV." : "";
 
+  const opening = opts.spontaneous
+    ? `Me pongo en contacto para ofrecerme por si en algún momento necesitáis incorporar a alguien a vuestro equipo.${cv}`
+    : `Me pongo en contacto para presentar mi candidatura al puesto de «${job.title}».${cv}`;
+
   const body = [
     greeting,
-    `Me pongo en contacto para presentar mi candidatura al puesto de «${job.title}».${cv}`,
+    opening,
     voice.intro,
     `${voice.closing} Muchas gracias por vuestro tiempo.`,
     `Un saludo,\n${applicantName?.trim() || fallbackName()}`,
   ].join("\n\n");
 
-  return { subject: `Candidatura: ${job.title}`, body };
+  return { subject: opts.spontaneous ? "Candidatura espontánea" : `Candidatura: ${job.title}`, body };
 }

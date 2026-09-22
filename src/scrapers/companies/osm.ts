@@ -11,7 +11,7 @@ import { normalize } from "../../matching/classifier.js";
 
 // Categoría (palabras que puedes escribir) -> filtros de etiquetas OSM.
 const CATEGORY_TAGS: [RegExp, string[]][] = [
-  [/academia|escuela|colegio|formacion|idiomas|extraescolar/, ['["amenity"~"^(school|language_school|music_school|college|driving_school)$"]', '["office"="educational_institution"]']],
+  [/academia|escuela|colegio|formacion|idiomas|extraescolar/, ['["amenity"~"^(school|language_school|music_school|college)$"]', '["office"="educational_institution"]']],
   [/music|guitarra|instrumento/, ['["amenity"="music_school"]', '["shop"="musical_instrument"]']],
   [/diseno|publicidad|agencia|marketing|imprenta/, ['["office"~"^(advertising_agency|design|it)$"]', '["craft"~"^(printer|photographer)$"]', '["shop"="copyshop"]']],
   [/tienda|comercio|venta|retail/, ['["shop"]']],

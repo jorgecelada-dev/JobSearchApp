@@ -1,4 +1,5 @@
 import { prisma } from "../../db/client.js";
+import { createSpontaneousApplications } from "../../matching/spontaneous.js";
 import { searchCompaniesOsm } from "./osm.js";
 import { searchCompanies } from "./places.js";
 import { scanAll, scanCompany, type ScanReport } from "./scan.js";
@@ -9,13 +10,14 @@ const USAGE = `Uso: npm run companies -- <comando>
   search "<categoría>" "<zona>" [n]   busca con Google Places (de pago, requiere clave)
   set-careers <id> <url>              fija a mano la página de empleo de una empresa
   list                                lista las empresas
+  spontaneous [minScore]              crea candidaturas espontáneas con el email hallado (4=media, 10=solo RR. HH.)
   scan [id]                           revisa sus ofertas (todas, o una)`;
 
 const [cmd, ...args] = process.argv.slice(2);
 
 function printReport(r: ScanReport) {
   const ats = r.ats ? ` [${r.ats}]` : "";
-  console.log(`- ${r.company}${ats}: ${r.method} · ${r.found} encontradas · ${r.created} nuevas${r.note ? `\n    ⚠ ${r.note}` : ""}`);
+  console.log(`- ${r.company}${ats}: ${r.method} · ${r.found} encontradas · ${r.created} nuevas${r.email ? ` · email: ${r.email}` : ""}${r.note ? `\n    ⚠ ${r.note}` : ""}`);
 }
 
 try {
@@ -50,7 +52,12 @@ switch (cmd) {
   }
   case "list": {
     for (const c of await prisma.company.findMany({ orderBy: { id: "asc" } }))
-      console.log(`#${c.id} ${c.name} · ${c.website ?? "sin web"} · ${c.atsType ?? "sin ATS"} · revisada: ${c.lastCheckedAt?.toISOString() ?? "nunca"}`);
+      console.log(`#${c.id} ${c.name} · ${c.website ?? "sin web"} · ${c.atsType ?? "sin ATS"} · ${c.contactEmail ?? "sin email"} · revisada: ${c.lastCheckedAt?.toISOString() ?? "nunca"}`);
+    break;
+  }
+  case "spontaneous": {
+    const r = await createSpontaneousApplications(args[0] ? Number(args[0]) : 4);
+    console.log(`Creadas: ${r.created} · ya existían: ${r.existing} · sin email: ${r.noEmail} · email poco fiable: ${r.lowConfidence} · sin perfil para su categoría: ${r.noProfile}`);
     break;
   }
   case "scan": {

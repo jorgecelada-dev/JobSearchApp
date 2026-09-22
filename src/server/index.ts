@@ -8,6 +8,9 @@ import { prisma } from "../db/client.js";
 import { getSetting, setSetting } from "../db/settings.js";
 import { CV_DIR, SendError, cvFile, sendApplication } from "../mail/applicationMail.js";
 import { verifySmtp } from "../mail/send.js";
+import { linkedinSearches } from "../matching/linkedin.js";
+import { InvestigateError, investigateCompany } from "../scrapers/companies/investigate.js";
+import { ManualOfferError, addManualLinkedInOffer, manualOfferSchema } from "../matching/manualOffer.js";
 import { getSmtp, publicSmtp, removeSmtp, saveSmtp } from "../secrets/accounts.js";
 
 const app = new Hono();
@@ -160,6 +163,38 @@ app.post("/api/applications/:id/send", async (c) => {
     return c.json(await sendApplication(Number(c.req.param("id")), body.data.to));
   } catch (e) {
     if (e instanceof SendError) return c.json({ error: e.message }, e.status);
+    throw e;
+  }
+});
+
+// ---------- LinkedIn (solo manual: enlaces de búsqueda y ofertas que tú pegas) ----------
+app.get("/api/linkedin/searches", (c) => {
+  const location = (c.req.query("location") ?? "").trim() || "Madrid, España";
+  const hours = [0, 24, 168].includes(Number(c.req.query("hours"))) ? Number(c.req.query("hours")) : 24;
+  return c.json(linkedinSearches(location, hours));
+});
+
+app.post("/api/linkedin/offers", async (c) => {
+  const parsed = manualOfferSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Faltan datos: enlace, puesto y empresa son obligatorios" }, 400);
+  try {
+    return c.json(await addManualLinkedInOffer(parsed.data), 201);
+  } catch (e) {
+    if (e instanceof ManualOfferError) return c.json({ error: e.message }, e.status);
+    throw e;
+  }
+});
+
+// ---------- Investigar una empresa concreta (mira SU web, no LinkedIn) ----------
+app.post("/api/companies/investigate", async (c) => {
+  const parsed = z
+    .object({ name: z.string().trim().min(1).max(200), website: z.string().trim().min(3).max(300), profileSlug: z.string().trim().optional() })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Indica el nombre y la web de la empresa" }, 400);
+  try {
+    return c.json(await investigateCompany(parsed.data));
+  } catch (e) {
+    if (e instanceof InvestigateError) return c.json({ error: e.message }, 400);
     throw e;
   }
 });

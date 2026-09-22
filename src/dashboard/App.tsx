@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { listApplications } from "./client.js";
 import { AccountsView } from "./AccountsView.js";
 import { ApplicationCard } from "./ApplicationCard.js";
+import { LinkedInView } from "./LinkedInView.js";
 import { STATUS_LABEL, type Application, type Status } from "./types.js";
 import "./styles.css";
 
@@ -12,7 +13,7 @@ export function App() {
   const [error, setError] = useState(false);
   const [status, setStatus] = useState<Status>("pendiente_revision");
   const [profile, setProfile] = useState<string>("all");
-  const [view, setView] = useState<"applications" | "accounts">("applications");
+  const [view, setView] = useState<"applications" | "linkedin" | "accounts">("applications");
 
   useEffect(() => {
     listApplications().then(setItems, () => setError(true));
@@ -47,11 +48,14 @@ export function App() {
         <p className="muted">Revisa cada candidatura antes de enviarla. Nada se envía solo.</p>
         <div className="views">
           <button className={`view ${view === "applications" ? "view-active" : ""}`} onClick={() => setView("applications")}>Candidaturas</button>
+          <button className={`view ${view === "linkedin" ? "view-active" : ""}`} onClick={() => setView("linkedin")}>LinkedIn</button>
           <button className={`view ${view === "accounts" ? "view-active" : ""}`} onClick={() => setView("accounts")}>Cuentas y CV</button>
         </div>
       </header>
 
-      {view === "accounts" ? <AccountsView /> : <>
+      {view === "accounts" ? <AccountsView /> : view === "linkedin" ? (
+        <LinkedInView onChanged={() => void listApplications().then(setItems, () => {})} onAdded={(a) => { setItems((prev) => (prev ? [a, ...prev] : [a])); setView("applications"); setStatus("pendiente_revision"); setProfile("all"); }} />
+      ) : <>
 
       <nav className="tabs" aria-label="Estado">
         {STATUSES.map((s) => (

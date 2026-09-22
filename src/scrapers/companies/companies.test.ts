@@ -120,3 +120,48 @@ test("OSM: mapea elementos, añade https, descarta sin web o sin nombre y duplic
   assert.deepEqual(places.map((p) => [p.osmId, p.website]), [["osm:node/1", "https://sonata.es"], ["osm:node/4", "http://colegio.es"]]);
   assert.equal(places[0]?.address, "Calle Sol 4, Tres Cantos");
 });
+
+import { confidence, decodeCfEmail, extractEmails, rankEmails, type Page } from "./emails.js";
+
+// Codifica como lo hace Cloudflare, para probar la decodificación con datos propios.
+const cfEncode = (email: string, key = 0x5a) =>
+  key.toString(16).padStart(2, "0") + [...email].map((c) => (c.charCodeAt(0) ^ key).toString(16).padStart(2, "0")).join("");
+
+test("emails: mailto, texto plano, ofuscado con [arroba] y Cloudflare", () => {
+  const html = `<a href="mailto:Rrhh@Empresa.es?subject=CV">Escríbenos</a>
+    <p>Llama o escribe a info [arroba] empresa (punto) es</p>
+    <a class="__cf_email__" data-cfemail="${cfEncode("talento@empresa.es")}">[email&#160;protected]</a>`;
+  assert.deepEqual([...extractEmails(html).keys()].sort(), ["info@empresa.es", "rrhh@empresa.es", "talento@empresa.es"]);
+  assert.equal(decodeCfEmail(cfEncode("a@b.es")), "a@b.es");
+});
+
+test("emails: descarta imágenes, plantillas y ruido de Wix", () => {
+  const html = `<img src="logo@2x.png"> <p>tu@dominio.com  foo@example.com  x1234@sentry.wixpress.com  real@tienda.es</p>`;
+  assert.deepEqual([...extractEmails(html).keys()], ["real@tienda.es"]);
+});
+
+test("emails: gana el buzón de empleo; los de privacidad o ventas no puntúan", () => {
+  const pages: Page[] = [
+    { url: "https://tienda.es/", kind: "home", html: `<p>Info: info@tienda.es</p><p>ventas@tienda.es</p>` },
+    { url: "https://tienda.es/empleo", kind: "careers", html: `<p>Envía tu currículum a rrhh@tienda.es</p>` },
+    { url: "https://tienda.es/aviso-legal", kind: "legal", html: `<p>Privacidad: privacidad@tienda.es</p>` },
+  ];
+  const ranked = rankEmails(pages, "https://www.tienda.es");
+  assert.equal(ranked[0]?.email, "rrhh@tienda.es");
+  assert.equal(confidence(ranked[0]!.score), "alta");
+  assert.equal(ranked[0]?.sourceUrl, "https://tienda.es/empleo");
+  assert.deepEqual(ranked.map((r) => r.email), ["rrhh@tienda.es", "info@tienda.es"]);
+});
+
+test("emails: un buzón genérico con contexto de CV supera a otro sin contexto", () => {
+  const pages: Page[] = [{ url: "https://x.es/", kind: "home", html: `<p>Prensa: hola@x.es</p><p>Si quieres trabajar con nosotros, manda tu CV a hola@x.es y a ana@gmail.com</p>` }];
+  const [first] = rankEmails(pages, "https://x.es");
+  assert.equal(first?.email, "hola@x.es");
+});
+
+test("emails: rechaza direcciones con forma inválida (basura binaria) y buzones de protección de datos", () => {
+  const html = `<p>k@48g9-.bybgnptut  x@a-.es  ok@empresa.es  gdrp@empresa.es  a@b.es</p>`;
+  assert.deepEqual([...extractEmails(html).keys()].sort(), ["gdrp@empresa.es", "ok@empresa.es"]);
+  const ranked = rankEmails([{ url: "https://empresa.es/", kind: "home", html }], "https://empresa.es");
+  assert.deepEqual(ranked.map((r) => r.email), ["ok@empresa.es"]); // gdrp puntúa negativo y se descarta
+});

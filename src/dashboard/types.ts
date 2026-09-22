@@ -2,10 +2,11 @@ export type Status = "pendiente_revision" | "enviada" | "rechazada" | "entrevist
 
 export interface Application {
   id: number;
-  method: "email" | "autofill";
+  method: "email" | "autofill" | "manual";
   status: Status;
   draftSubject: string | null;
   draftContent: string;
+  notes: string | null;
   sentAt: string | null;
   profile: { id: number; slug: string; name: string };
   jobPosting: {
@@ -45,4 +46,25 @@ export interface ProfileCv {
   name: string;
   hasCv: boolean;
   cvBytes: number;
+}
+
+export interface LinkedInGroup {
+  profile: string;
+  searches: { label: string; url: string }[];
+}
+
+export interface InvestigateResult {
+  companyId: number;
+  report: {
+    company: string;
+    careersUrl: string | null;
+    ats: string | null;
+    method: "ats-api" | "json-ld" | "heuristic" | "none" | "error";
+    found: number;
+    created: number;
+    note?: string;
+  };
+  drafted: number;
+  email: { address: string; confidence: string; note: string | null } | null;
+  spontaneous: "created" | "existing" | "no-email" | null;
 }

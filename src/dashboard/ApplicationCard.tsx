@@ -22,6 +22,7 @@ export function ApplicationCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [to, setTo] = useState(job.contactEmail ?? "");
+  const [copied, setCopied] = useState(false);
 
   const dirty =
     draft !== application.draftContent ||
@@ -50,6 +51,16 @@ export function ApplicationCard({
 
   const validTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim());
 
+  async function copyDraft() {
+    try {
+      await navigator.clipboard.writeText(draft);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("No se pudo copiar: selecciona el texto del borrador y cópialo a mano.");
+    }
+  }
+
   async function sendEmail() {
     if (!window.confirm(`¿Enviar esta candidatura a ${to.trim()} con el CV «${profile.name}» adjunto?\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
@@ -75,10 +86,12 @@ export function ApplicationCard({
             {job.location && ` · ${job.location}`}
           </p>
         </div>
-        <div className={`score score-${scoreLevel(score)}`} title="Afinidad con el perfil">
-          <strong>{score === null ? "–" : Math.round(score)}</strong>
-          <span>%</span>
-        </div>
+        {score !== null && (
+          <div className={`score score-${scoreLevel(score)}`} title="Afinidad con el perfil">
+            <strong>{Math.round(score)}</strong>
+            <span>%</span>
+          </div>
+        )}
       </header>
 
       <div className="tags">
@@ -86,11 +99,12 @@ export function ApplicationCard({
         <span className="tag">{SOURCE_LABEL[job.source]}</span>
         <span className="tag tag-profile">{profile.name}</span>
         <span className="tag">
-          {application.method === "email" ? "Por email" : "Formulario"}
+          {application.method === "email" ? "Por email" : application.method === "manual" ? "La solicitas tú" : "Formulario"}
         </span>
       </div>
 
       {job.description && <p className="desc">{job.description}</p>}
+      {application.notes && <p className="note">{application.notes}</p>}
 
       {application.method === "email" && (
         <label className="field">
@@ -121,7 +135,7 @@ export function ApplicationCard({
 
       {pending && hasPlaceholder && (
         <p className="warn">
-          Falta tu nombre en la firma: edítalo aquí o define <code>APPLICANT_NAME</code> en <code>.env</code>.
+          Falta tu nombre en la firma: escríbelo en «Cuentas y CV» (para los borradores nuevos) o edítalo aquí.
         </p>
       )}
       {error && <p className="error">{error}</p>}
@@ -141,7 +155,16 @@ export function ApplicationCard({
             <button className="btn btn-danger" disabled={busy} onClick={() => save("rechazada")}>
               Descartar
             </button>
-            {application.method === "email" ? (
+            {application.method === "manual" ? (
+              <>
+                <button className="btn" disabled={busy} onClick={() => save("enviada")}
+                  title="Cuando ya hayas solicitado la oferta en LinkedIn">
+                  Ya la solicité
+                </button>
+                <button className="btn" onClick={copyDraft}>{copied ? "¡Copiado!" : "Copiar borrador"}</button>
+                <a className="btn btn-primary" href={job.url} target="_blank" rel="noreferrer">Abrir en LinkedIn ↗</a>
+              </>
+            ) : application.method === "email" ? (
               <>
                 <button className="btn" disabled={busy} onClick={() => save("enviada")}
                   title="Solo cambia el estado, sin enviar nada: úsalo si ya la mandaste por tu cuenta">
