@@ -66,3 +66,9 @@ export const saveSearchLocation = (location: string) =>
   request<{ location: string }>("/api/search-location", send("PUT", { location }));
 export const startRefresh = () => request<RefreshStatus>("/api/leads/refresh", send("POST"));
 export const getRefreshStatus = () => request<RefreshStatus>("/api/leads/status");
+
+export type AiStatus = { enabled: boolean; configured: boolean; model: string };
+export const getAi = () => request<AiStatus>("/api/ai");
+export const setAiEnabled = (enabled: boolean) => request<AiStatus>("/api/ai", send("PUT", { enabled }));
+export const saveAiKey = (key: string) => request<AiStatus>("/api/ai/key", send("PUT", { key }));
+export const forgetAiKey = () => request<AiStatus>("/api/ai/key", send("DELETE"));

@@ -1,6 +1,6 @@
 import { prisma } from "./client.js";
 
-export type SettingKey = "applicantName" | "searchLocation";
+export type SettingKey = "applicantName" | "searchLocation" | "aiClassification";
 
 export async function getSetting(key: SettingKey): Promise<string | null> {
   return (await prisma.setting.findUnique({ where: { key } }))?.value ?? null;

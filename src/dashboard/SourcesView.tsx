@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { forgetSourceCredentials, getSources, getRefreshStatus, saveSearchLocation, saveSourceCredentials, setSourceEnabled, startRefresh } from "./client.js";
+import { forgetAiKey, forgetSourceCredentials, getAi, getSources, saveAiKey, setAiEnabled, type AiStatus, getRefreshStatus, saveSearchLocation, saveSourceCredentials, setSourceEnabled, startRefresh } from "./client.js";
 import type { LeadSource, RefreshStatus } from "./types.js";
 
 type Msg = { kind: "ok" | "error"; text: string } | null;
@@ -49,6 +49,54 @@ function Credentials({ source, onSaved }: { source: LeadSource; onSaved: (s: Lea
       </div>
       {msg && <p className={`span ${msg.kind === "ok" ? "ok" : "error"}`}>{msg.text}</p>}
     </form>
+  );
+}
+
+function AiSection({ disabled }: { disabled: boolean }) {
+  const [ai, setAi] = useState<AiStatus | null>(null);
+  const [key, setKey] = useState("");
+  const [msg, setMsg] = useState<Msg>(null);
+  useEffect(() => void getAi().then(setAi, () => {}), []);
+
+  async function run(action: () => Promise<AiStatus>, ok: string) {
+    setMsg(null);
+    try {
+      setAi(await action());
+      setMsg({ kind: "ok", text: ok });
+    } catch (e) {
+      setMsg({ kind: "error", text: errText(e) });
+    }
+  }
+  if (!ai) return null;
+  return (
+    <section className={`card ${ai.enabled ? "" : "card-off"}`}>
+      <header className="card-head">
+        <div>
+          <h2>Clasificación con IA (Claude)</h2>
+          <p className="muted">
+            Opcional. Solo se usa en las ofertas dudosas: las que las palabras clave clasifican con claridad no gastan nada.
+            Cuesta céntimos por oferta y necesita una clave de la API de Anthropic.
+          </p>
+        </div>
+        <label className="switch">
+          <input type="checkbox" role="switch" checked={ai.enabled} disabled={disabled}
+            onChange={() => run(() => setAiEnabled(!ai.enabled), ai.enabled ? "IA apagada." : "IA encendida para las próximas búsquedas.")} />
+          <span>{ai.enabled ? "Encendida" : "Apagada"}</span>
+        </label>
+      </header>
+      <p className="note">
+        Modelo: {ai.model}{!ai.configured && <span className="warn"> · Falta la clave</span>}
+      </p>
+      <form className="row" onSubmit={(e) => { e.preventDefault(); void run(() => saveAiKey(key), "Clave guardada en el almacén seguro del sistema.").then(() => setKey("")); }}>
+        <input type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)}
+          aria-label="Clave de la API de Anthropic" placeholder={ai.configured ? "•••••• (guardada)" : "sk-ant-…"} />
+        <button className="btn" type="submit">Guardar clave</button>
+        <button className="btn btn-danger" type="button" disabled={!ai.configured}
+          onClick={() => window.confirm("¿Olvidar la clave de Anthropic?") && run(forgetAiKey, "Clave borrada.")}>Olvidar</button>
+      </form>
+      <p className="note"><a className="link" href="https://platform.claude.com/settings/keys" target="_blank" rel="noreferrer">Conseguir una clave</a></p>
+      {msg && <p className={msg.kind === "ok" ? "ok" : "error"}>{msg.text}</p>}
+    </section>
   );
 }
 
@@ -148,6 +196,8 @@ export function SourcesView({ onFinished }: { onFinished: () => void }) {
         </form>
         {msg && <p className={msg.kind === "ok" ? "ok" : "error"}>{msg.text}</p>}
       </section>
+
+      <AiSection disabled={running} />
 
       {sources?.map((s) => (
         <section className={`card ${s.enabled ? "" : "card-off"}`} key={s.key}>

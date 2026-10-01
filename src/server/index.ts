@@ -14,6 +14,7 @@ import { ManualOfferError, addManualLinkedInOffer, manualOfferSchema } from "../
 import { getSmtp, publicSmtp, removeSmtp, saveSmtp } from "../secrets/accounts.js";
 import { refreshLeads, refreshStatus, setSourceEnabled, sourceRows } from "../leads/refresh.js";
 import { findSource, forgetCredentials, saveCredentials, searchLocation } from "../leads/sources.js";
+import { aiStatus, forgetAnthropicKey, saveAnthropicKey, setAiEnabled } from "../ai/classify.js";
 
 const app = new Hono();
 
@@ -249,6 +250,28 @@ app.post("/api/leads/refresh", (c) => {
 });
 
 app.get("/api/leads/status", (c) => c.json(refreshStatus()));
+
+// ---------- Clasificación con IA (opcional) ----------
+app.get("/api/ai", async (c) => c.json(await aiStatus()));
+
+app.put("/api/ai", async (c) => {
+  const parsed = z.object({ enabled: z.boolean() }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Datos no válidos" }, 400);
+  await setAiEnabled(parsed.data.enabled);
+  return c.json(await aiStatus());
+});
+
+app.put("/api/ai/key", async (c) => {
+  const parsed = z.object({ key: z.string().trim().min(20).max(300) }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "La clave no parece válida (empieza por sk-ant-…)" }, 400);
+  await saveAnthropicKey(parsed.data.key);
+  return c.json(await aiStatus());
+});
+
+app.delete("/api/ai/key", async (c) => {
+  await forgetAnthropicKey();
+  return c.json(await aiStatus());
+});
 
 const port = Number(process.env.API_PORT ?? 3001);
 serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () =>
