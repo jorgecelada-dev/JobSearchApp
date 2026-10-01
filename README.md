@@ -43,6 +43,14 @@ scripts/desktop/install.sh     # crea «JSA» en el Escritorio, con su icono
 
 Al abrir JSA se abre una ventana de Terminal que arranca el proyecto y luego el navegador en http://localhost:5173. Para pararlo: `Ctrl+C` o cierra esa ventana. Si mueves el proyecto de carpeta, vuelve a ejecutar el instalador.
 
+## Abrirlo con un doble clic (Windows)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\desktop\install.ps1   # crea «JSA» en el Escritorio, con su icono
+```
+
+Igual que en Mac: la primera vez instala dependencias, crea `.env` y la base de datos; después arranca API y dashboard en una ventana de PowerShell y abre el navegador. Para pararlo, cierra esa ventana. Desde terminal: `scripts\web.ps1 start | stop | status`.
+
 ## Desarrollo
 
 ```bash
@@ -55,7 +63,7 @@ npm run db:seed:demo # candidaturas de ejemplo, marcadas [DEMO]
 En el dashboard, pestaña **Cuentas y CV**: tu nombre (firma), tu cuenta de email y un PDF por perfil.
 
 - **Gmail:** activa la verificación en dos pasos y crea una *contraseña de aplicación* (myaccount.google.com/apppasswords). No uses tu contraseña normal.
-- **Dónde se guarda:** en el **llavero de macOS**, no en `.env`, ni en la BD, ni en git. La pantalla nunca muestra la contraseña guardada.
+- **Dónde se guarda:** en el **llavero de macOS**, o en Windows cifrada con tu usuario (DPAPI) en `%APPDATA%\jobsearchapp\`; nunca en `.env`, ni en la BD, ni en git. La pantalla nunca muestra la contraseña guardada.
 - **Seguridad:** el API solo escucha en `127.0.0.1` y rechaza `Host`/`Origin` que no sean locales.
 - **Enviar:** en cada tarjeta por email, «Enviar email» pide confirmación y adjunta el CV de su perfil. Bloquea ofertas de demo, firma sin rellenar y doble envío.
 
