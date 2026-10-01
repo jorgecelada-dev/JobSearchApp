@@ -1,6 +1,6 @@
 # JobSearchApp
 
-Herramienta personal de automatización de búsqueda de empleo. Reúne ofertas de varias fuentes, las clasifica con IA contra 3 perfiles de CV y prepara un borrador de candidatura que se revisa y aprueba a mano en un dashboard. **Nunca hay envío sin revisión humana.**
+Herramienta personal de automatización de búsqueda de empleo. Reúne ofertas de varias fuentes (webs de empresas, InfoJobs, Adzuna, Jooble), las clasifica contra 3 perfiles de CV (por palabras clave y, si lo activas, con Claude) y prepara un borrador de candidatura que se revisa y aprueba a mano en un dashboard. **Nunca hay envío sin revisión humana.**
 
 ## Stack
 
@@ -9,31 +9,37 @@ Node.js + TypeScript · Playwright · Prisma + SQLite · React (Vite) · SDK de 
 ## Estructura
 
 ```
-prisma/          esquema, migraciones y seed de perfiles
-src/scrapers/    InfoJobs (API), Jobtoday, empresas locales (Places, ATS, parser IA)
-src/ai/          clasificación, borradores y parseo de ofertas con Claude
-src/db/          cliente Prisma
-src/dashboard/   dashboard React de revisión
-cvs/             PDFs de los 3 CV (ignorados por git)
+prisma/                esquema, migraciones y seed de perfiles
+src/leads/             fuentes de leads, interruptores y «Buscar leads ahora»
+src/scrapers/companies webs de empresas: OpenStreetMap, Places, ATS, email de contacto
+src/scrapers/portals   InfoJobs, Adzuna y Jooble por sus APIs oficiales
+src/matching/          clasificador por palabras clave, borradores, espontáneas, LinkedIn
+src/ai/                clasificación opcional con Claude de las ofertas dudosas
+src/autofill/          abre la oferta y rellena el formulario (nunca lo envía)
+src/secrets/           almacén seguro: llavero de macOS o DPAPI en Windows
+src/dashboard/         dashboard React de revisión
+cvs/                   PDFs de los 3 CV (ignorados por git)
 ```
 
 ## Puesta en marcha
 
+Lo más fácil es el acceso directo (ver «Abrirlo con un doble clic»): la primera vez instala todo solo. A mano:
+
 ```bash
 npm install
-cp .env.example .env      # y rellena las claves
-npx prisma migrate dev    # crea dev.db
+cp .env.example .env      # las claves son opcionales: se pueden guardar desde el dashboard
+npx prisma migrate deploy # crea dev.db
 npm run db:seed           # crea los 3 perfiles
-npm run dashboard:dev
+npm run dev
 ```
 
-Coloca los CV en `cvs/` con los nombres que indica `prisma/seed.ts`.
+Los CV se suben desde la pestaña «Cuentas y CV».
 
 ## Notas
 
-- LinkedIn no se automatiza (ToS): solo búsqueda manual o alertas.
-- Jobtoday: scraping con retardo mínimo entre peticiones (`JOBTODAY_MIN_DELAY_MS`).
-- Autofill con Playwright se detiene antes del envío salvo `AUTOFILL_AUTO_SUBMIT=true`.
+- LinkedIn y Jobtoday no se automatizan: sus condiciones prohíben robots y extracción de datos. Se usan a mano.
+- El autofill nunca pulsa «Enviar»: rellena y tú revisas y envías.
+- `npm audit` avisa de 4 vulnerabilidades en la herramienta de Prisma (paquetes `deepmerge-ts` y `mysql2`). Solo afectan a la línea de comandos de desarrollo y al driver de MySQL, que no se usa (la app usa SQLite). La única corrección que ofrece npm es bajar a Prisma 6, que rompe el proyecto: se espera a una versión de Prisma 7/8 que lo arregle.
 
 ## Abrirlo con un doble clic (macOS)
 
@@ -95,16 +101,33 @@ Salen como tarjetas pendientes, con el motivo y la página donde se halló el em
 
 Sin IA: la página de empleo se detecta por palabras clave, la ATS por su URL, y las ofertas se leen por la API JSON de la ATS (Greenhouse, Lever, Personio, Workable) o por datos JSON-LD / enlaces de la página. Las webs que cargan sus ofertas con JavaScript no se ven así: hay que indicar la URL a mano con `set-careers`.
 
-## Portales de empleo
+## Fuentes y «Buscar leads ahora»
 
-| Portal | Estado |
+Pestaña **Fuentes** del dashboard: un interruptor por fuente, la zona de búsqueda (por defecto Madrid) y el botón **Buscar leads ahora**, que busca en las fuentes encendidas, guarda lo nuevo y prepara borradores. Muestra el progreso de cada fuente; solo hay una búsqueda a la vez. El programador diario (`npm run scheduler`) hace exactamente lo mismo.
+
+Los términos que se buscan en los portales están en `src/matching/searchTerms.ts` (3 por perfil).
+
+| Fuente | Estado |
 |---|---|
-| InfoJobs | API oficial, pendiente de credenciales |
-| Adzuna, Jooble | APIs con clave gratuita (límites por confirmar), pendientes |
+| Webs de empresas | Encendida por defecto. Revisa las empresas de tu lista (ver «Empresas locales») |
+| InfoJobs | API oficial. Pide Client ID y Client Secret ([developer.infojobs.net](https://developer.infojobs.net)) |
+| Adzuna | API gratuita, agrega muchos portales españoles. Pide App ID y App Key ([developer.adzuna.com](https://developer.adzuna.com)) |
+| Jooble | API gratuita. La clave se pide con un formulario ([jooble.org/api/about](https://jooble.org/api/about)) |
+| Jobtoday | **Solo a mano**: sus condiciones (sección 11) prohíben robots y extracción de datos |
 | Superprof | **No es una fuente de ofertas**: tú publicas tu perfil y los alumnos te contactan. Se gestiona a mano |
 | Indeed | Descartado: sus condiciones prohíben el scraping y ya no tiene API pública |
 | LinkedIn | **Solo a mano** (pestaña «LinkedIn»): enlaces de búsqueda ya preparados, pegas las ofertas que te interesen y las solicitas tú. No se conecta tu cuenta ni se accede a su web |
 
+Las claves de cada portal se guardan desde su tarjeta en «Fuentes» (almacén seguro; «Olvidar claves» las borra). También valen las variables del `.env`. Los conectores de portales están escritos según su documentación oficial y probados con respuestas de ejemplo: la primera búsqueda con tus claves es la prueba definitiva. Google Places sigue sin probar con una clave real (es de pago).
+
+## Clasificación con IA (opcional)
+
+En «Fuentes», tarjeta **Clasificación con IA**: guarda tu clave de la API de Anthropic y enciéndela. Solo se consultan a Claude (`claude-opus-5-5`, esfuerzo bajo) las ofertas dudosas, por debajo de 60 puntos por palabras clave; las claras no gastan nada. Si la IA está apagada, sin clave o falla, decide el clasificador por palabras clave como siempre. La razón de la IA aparece en la nota de la tarjeta («IA: …»).
+
+## Autofill de formularios
+
+En las candidaturas de tipo **Formulario**, el botón **Abrir y rellenar** abre la oferta en Edge (o Chrome) y rellena nombre, email, carta de presentación y CV, también dentro de iframes como el de Greenhouse. **Nunca pulsa enviar**: revisas la página, completas lo que falte (teléfono, preguntas propias) y la envías tú; luego pulsa «Ya la envié». Si la página no tiene el formulario a la vista (hay que pulsar antes «Inscribirme»), te lo dice.
+
 ## Esquema del proyecto
 
-`docs/arquitectura.drawio` (2 páginas: flujo completo y modelo de datos). Ábrelo en [app.diagrams.net](https://app.diagrams.net) (Archivo → Abrir) o con la extensión «Draw.io Integration» de VS Code.
+`docs/arquitectura.drawio` (2 páginas: flujo completo y modelo de datos; anterior a la pestaña Fuentes, la IA y el autofill). Ábrelo en [app.diagrams.net](https://app.diagrams.net) (Archivo → Abrir) o con la extensión «Draw.io Integration» de VS Code.

@@ -54,7 +54,7 @@ export function mapPersonio(xml: string, id: string): RawJob[] {
 }
 
 // --- Workable: apply.workable.com/api/v1/widget/accounts/{id}
-// (formato de campos según la documentación del widget; sin probar con una cuenta con ofertas)
+// (comprobado con cuentas reales en octubre de 2026: el widget no trae la descripción)
 export function mapWorkable(json: any, id: string): RawJob[] {
   return (json?.jobs ?? []).map((j: any) => ({
     externalId: String(j.shortcode ?? j.code ?? j.url),
