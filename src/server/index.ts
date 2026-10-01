@@ -15,6 +15,7 @@ import { getSmtp, publicSmtp, removeSmtp, saveSmtp } from "../secrets/accounts.j
 import { refreshLeads, refreshStatus, setSourceEnabled, sourceRows } from "../leads/refresh.js";
 import { findSource, forgetCredentials, saveCredentials, searchLocation } from "../leads/sources.js";
 import { aiStatus, forgetAnthropicKey, saveAnthropicKey, setAiEnabled } from "../ai/classify.js";
+import { autofill } from "../autofill/autofill.js";
 
 const app = new Hono();
 
@@ -170,6 +171,25 @@ app.post("/api/applications/:id/send", async (c) => {
   } catch (e) {
     if (e instanceof SendError) return c.json({ error: e.message }, e.status);
     throw e;
+  }
+});
+
+// ---------- Autofill: abre la oferta y rellena el formulario; el envío lo haces tú ----------
+app.post("/api/applications/:id/autofill", async (c) => {
+  const application = await prisma.application.findUnique({ where: { id: Number(c.req.param("id")) }, include });
+  if (!application) return c.json({ error: "Candidatura no encontrada" }, 404);
+  if (application.method !== "autofill") return c.json({ error: "Esta candidatura no es de formulario" }, 400);
+  const smtp = await getSmtp().catch(() => null);
+  try {
+    const { page: _page, ...report } = await autofill(application.jobPosting.url, {
+      name: (await getSetting("applicantName"))?.trim() || null,
+      email: smtp ? smtp.from || smtp.user : null,
+      coverLetter: application.draftContent,
+      cvPath: cvFile(application.profile.cvPath),
+    });
+    return c.json(report);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "No se pudo abrir el navegador" }, 502);
   }
 });
 

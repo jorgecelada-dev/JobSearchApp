@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { sendApplicationEmail, updateApplication } from "./client.js";
+import { autofillApplication, sendApplicationEmail, updateApplication } from "./client.js";
 import { SOURCE_LABEL, type Application, type Status } from "./types.js";
+
+const FIELD_LABEL: Record<string, string> = {
+  fullName: "nombre", firstName: "nombre", lastName: "apellidos", email: "email", coverLetter: "carta", cv: "CV",
+};
 
 function scoreLevel(score: number | null) {
   if (score === null) return "none";
@@ -23,6 +27,7 @@ export function ApplicationCard({
   const [error, setError] = useState<string | null>(null);
   const [to, setTo] = useState(job.contactEmail ?? "");
   const [copied, setCopied] = useState(false);
+  const [fillReport, setFillReport] = useState<string | null>(null);
 
   const dirty =
     draft !== application.draftContent ||
@@ -71,6 +76,23 @@ export function ApplicationCard({
       onChange(await sendApplicationEmail(application.id, to.trim()));
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo enviar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openAndFill() {
+    setBusy(true);
+    setError(null);
+    setFillReport(null);
+    try {
+      // La carta que se pega es la que ves: primero se guardan las ediciones.
+      if (dirty) onChange(await updateApplication(application.id, { draftContent: draft, draftSubject: subject || null }));
+      const r = await autofillApplication(application.id);
+      const done = r.filled.length ? `Rellenado: ${r.filled.map((f) => FIELD_LABEL[f] ?? f).join(", ")}.` : "No he reconocido ningún campo.";
+      setFillReport([done, r.missing.length ? `Falta: ${r.missing.join("; ")}.` : "", r.note ?? ""].filter(Boolean).join(" "));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo abrir el navegador");
     } finally {
       setBusy(false);
     }
@@ -139,6 +161,7 @@ export function ApplicationCard({
         </p>
       )}
       {error && <p className="error">{error}</p>}
+      {fillReport && <p className="ok">{fillReport}</p>}
 
       <footer className="actions">
         <a href={job.url} target="_blank" rel="noreferrer" className="link">
@@ -175,10 +198,16 @@ export function ApplicationCard({
                 </button>
               </>
             ) : (
-              <button className="btn btn-primary" disabled={busy} onClick={() => save("enviada")}
-                title="Solo cambia el estado; el autofill con el navegador llegará más adelante">
-                Marcar como enviada
-              </button>
+              <>
+                <button className="btn" disabled={busy} onClick={() => save("enviada")}
+                  title="Solo cambia el estado: úsalo cuando ya la hayas enviado en su web">
+                  Ya la envié
+                </button>
+                <button className="btn btn-primary" disabled={busy} onClick={openAndFill}
+                  title="Abre la oferta en el navegador y rellena nombre, email, carta y CV. No la envía.">
+                  Abrir y rellenar
+                </button>
+              </>
             )}
           </>
         ) : (

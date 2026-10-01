@@ -72,3 +72,7 @@ export const getAi = () => request<AiStatus>("/api/ai");
 export const setAiEnabled = (enabled: boolean) => request<AiStatus>("/api/ai", send("PUT", { enabled }));
 export const saveAiKey = (key: string) => request<AiStatus>("/api/ai/key", send("PUT", { key }));
 export const forgetAiKey = () => request<AiStatus>("/api/ai/key", send("DELETE"));
+
+export type AutofillReport = { url: string; filled: string[]; missing: string[]; note?: string };
+export const autofillApplication = (id: number) =>
+  request<AutofillReport>(`/api/applications/${id}/autofill`, send("POST"));
