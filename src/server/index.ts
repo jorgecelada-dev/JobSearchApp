@@ -57,7 +57,7 @@ const patchSchema = z.object({
 
 app.patch("/api/applications/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const parsed = patchSchema.safeParse(await c.req.json());
+  const parsed = patchSchema.safeParse(await c.req.json().catch(() => null));
   if (!Number.isInteger(id) || !parsed.success) {
     return c.json({ error: "Datos no válidos" }, 400);
   }
@@ -67,9 +67,12 @@ app.patch("/api/applications/:id", async (c) => {
       where: { id },
       data: {
         ...rest,
+        // La fecha de envío se conserva al pasar a «entrevista» o «rechazada»: solo se fija
+        // al enviar y se borra si la candidatura vuelve a pendiente.
         ...(status && {
           status,
-          sentAt: status === "enviada" ? new Date() : null,
+          ...(status === "enviada" && { sentAt: new Date() }),
+          ...(status === "pendiente_revision" && { sentAt: null }),
         }),
       },
       include,
