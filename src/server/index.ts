@@ -12,6 +12,8 @@ import { linkedinSearches } from "../matching/linkedin.js";
 import { InvestigateError, investigateCompany } from "../scrapers/companies/investigate.js";
 import { ManualOfferError, addManualLinkedInOffer, manualOfferSchema } from "../matching/manualOffer.js";
 import { getSmtp, publicSmtp, removeSmtp, saveSmtp } from "../secrets/accounts.js";
+import { refreshLeads, refreshStatus, setSourceEnabled, sourceRows } from "../leads/refresh.js";
+import { findSource, forgetCredentials, saveCredentials, searchLocation } from "../leads/sources.js";
 
 const app = new Hono();
 
@@ -201,6 +203,52 @@ app.post("/api/companies/investigate", async (c) => {
     throw e;
   }
 });
+
+// ---------- Fuentes de leads: interruptores, claves y botón «Buscar leads ahora» ----------
+app.get("/api/sources", async (c) =>
+  c.json({ location: await searchLocation(), sources: await sourceRows(), status: refreshStatus() }),
+);
+
+app.put("/api/sources/:key", async (c) => {
+  const parsed = z.object({ enabled: z.boolean() }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success || !findSource(c.req.param("key"))) return c.json({ error: "Datos no válidos" }, 400);
+  await setSourceEnabled(c.req.param("key"), parsed.data.enabled);
+  return c.json(await sourceRows());
+});
+
+app.put("/api/sources/:key/credentials", async (c) => {
+  const def = findSource(c.req.param("key"));
+  const parsed = z.record(z.string(), z.string().max(500)).safeParse(await c.req.json().catch(() => null));
+  if (!def || !def.fields.length || !parsed.success) return c.json({ error: "Datos no válidos" }, 400);
+  try {
+    await saveCredentials(def, parsed.data);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "No se pudieron guardar" }, 400);
+  }
+  return c.json(await sourceRows());
+});
+
+app.delete("/api/sources/:key/credentials", async (c) => {
+  const def = findSource(c.req.param("key"));
+  if (!def) return c.json({ error: "Fuente desconocida" }, 404);
+  await forgetCredentials(def);
+  return c.json(await sourceRows());
+});
+
+app.put("/api/search-location", async (c) => {
+  const parsed = z.object({ location: z.string().trim().min(2).max(100) }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Indica una ciudad o provincia" }, 400);
+  await setSetting("searchLocation", parsed.data.location);
+  return c.json({ location: parsed.data.location });
+});
+
+app.post("/api/leads/refresh", (c) => {
+  if (refreshStatus().running) return c.json({ error: "Ya hay una búsqueda en marcha" }, 409);
+  void refreshLeads(); // tarda minutos: el dashboard consulta /api/leads/status
+  return c.json(refreshStatus(), 202);
+});
+
+app.get("/api/leads/status", (c) => c.json(refreshStatus()));
 
 const port = Number(process.env.API_PORT ?? 3001);
 serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, () =>

@@ -11,7 +11,7 @@ export interface Application {
   profile: { id: number; slug: string; name: string };
   jobPosting: {
     id: number;
-    source: "infojobs" | "jobtoday" | "company_site" | "linkedin_manual";
+    source: "infojobs" | "jobtoday" | "adzuna" | "jooble" | "company_site" | "linkedin_manual";
     title: string;
     description: string | null;
     url: string;
@@ -33,6 +33,8 @@ export const STATUS_LABEL: Record<Status, string> = {
 export const SOURCE_LABEL: Record<Application["jobPosting"]["source"], string> = {
   infojobs: "InfoJobs",
   jobtoday: "Jobtoday",
+  adzuna: "Adzuna",
+  jooble: "Jooble",
   company_site: "Web de empresa",
   linkedin_manual: "LinkedIn",
 };
@@ -67,4 +69,27 @@ export interface InvestigateResult {
   drafted: number;
   email: { address: string; confidence: string; note: string | null } | null;
   spontaneous: "created" | "existing" | "no-email" | null;
+}
+
+export interface LeadSource {
+  key: string;
+  label: string;
+  description: string;
+  signupUrl: string | null;
+  fields: { name: string; label: string }[];
+  enabled: boolean;
+  configured: boolean;
+  lastRunAt: string | null;
+  lastFound: number | null;
+  lastCreated: number | null;
+  lastError: string | null;
+}
+
+export interface RefreshStatus {
+  running: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+  sources: { key: string; label: string; state: "pendiente" | "buscando" | "ok" | "error" | "sin-claves"; found?: number; created?: number; note?: string }[];
+  drafted: number | null;
+  error: string | null;
 }

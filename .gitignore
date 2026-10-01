@@ -10,3 +10,6 @@ cvs/*
 *.log
 playwright-report/
 test-results/
+
+# Capturas del navegador de pruebas (MCP Playwright)
+.playwright-mcp/

@@ -3,6 +3,7 @@ import { listApplications } from "./client.js";
 import { AccountsView } from "./AccountsView.js";
 import { ApplicationCard } from "./ApplicationCard.js";
 import { LinkedInView } from "./LinkedInView.js";
+import { SourcesView } from "./SourcesView.js";
 import { STATUS_LABEL, type Application, type Status } from "./types.js";
 import "./styles.css";
 
@@ -13,7 +14,7 @@ export function App() {
   const [error, setError] = useState(false);
   const [status, setStatus] = useState<Status>("pendiente_revision");
   const [profile, setProfile] = useState<string>("all");
-  const [view, setView] = useState<"applications" | "linkedin" | "accounts">("applications");
+  const [view, setView] = useState<"applications" | "sources" | "linkedin" | "accounts">("applications");
 
   useEffect(() => {
     listApplications().then(setItems, () => setError(true));
@@ -48,12 +49,13 @@ export function App() {
         <p className="muted">Revisa cada candidatura antes de enviarla. Nada se envía solo.</p>
         <div className="views">
           <button className={`view ${view === "applications" ? "view-active" : ""}`} onClick={() => setView("applications")}>Candidaturas</button>
+          <button className={`view ${view === "sources" ? "view-active" : ""}`} onClick={() => setView("sources")}>Fuentes</button>
           <button className={`view ${view === "linkedin" ? "view-active" : ""}`} onClick={() => setView("linkedin")}>LinkedIn</button>
           <button className={`view ${view === "accounts" ? "view-active" : ""}`} onClick={() => setView("accounts")}>Cuentas y CV</button>
         </div>
       </header>
 
-      {view === "accounts" ? <AccountsView /> : view === "linkedin" ? (
+      {view === "accounts" ? <AccountsView /> : view === "sources" ? <SourcesView onFinished={() => void listApplications().then(setItems, () => {})} /> : view === "linkedin" ? (
         <LinkedInView onChanged={() => void listApplications().then(setItems, () => {})} onAdded={(a) => { setItems((prev) => (prev ? [a, ...prev] : [a])); setView("applications"); setStatus("pendiente_revision"); setProfile("all"); }} />
       ) : <>
 

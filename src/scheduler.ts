@@ -1,18 +1,17 @@
 import cron from "node-cron";
 import { prisma } from "./db/client.js";
-import { processNewPostings } from "./matching/process.js";
-import { scanAll } from "./scrapers/companies/scan.js";
+import { refreshLeads, refreshStatus } from "./leads/refresh.js";
 
+/** La misma búsqueda que el botón «Buscar leads ahora»: solo las fuentes encendidas. */
 async function dailyRun() {
   console.log(`[${new Date().toISOString()}] Revisión diaria…`);
-  try {
-    const reports = await scanAll();
-    const nuevas = reports.reduce((n, r) => n + r.created, 0);
-    const r = await processNewPostings();
-    console.log(`Empresas: ${reports.length} · ofertas nuevas: ${nuevas} · candidaturas creadas: ${r.drafted}`);
-  } catch (e) {
-    console.error("Fallo en la revisión diaria:", e);
+  await refreshLeads();
+  const s = refreshStatus();
+  for (const src of s.sources) {
+    const counts = src.found !== undefined ? ` · ${src.found} encontradas · ${src.created} nuevas` : "";
+    console.log(`- ${src.label}: ${src.state}${counts}${src.note ? ` · ${src.note}` : ""}`);
   }
+  console.log(s.error ? `Fallo en la revisión diaria: ${s.error}` : `Candidaturas creadas: ${s.drafted ?? 0}`);
 }
 
 if (process.argv.includes("--now")) {

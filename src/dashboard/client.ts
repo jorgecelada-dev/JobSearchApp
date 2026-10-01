@@ -1,4 +1,4 @@
-import type { Application, InvestigateResult, LinkedInGroup, ProfileCv, SmtpStatus, Status } from "./types.js";
+import type { Application, InvestigateResult, LeadSource, LinkedInGroup, ProfileCv, RefreshStatus, SmtpStatus, Status } from "./types.js";
 
 /** Los errores del servidor traen `{ error }` en español: se muestran tal cual. */
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -53,3 +53,16 @@ export const addLinkedInOffer = (v: {
 
 export const investigateCompany = (v: { name: string; website: string; profileSlug?: string }) =>
   request<InvestigateResult>("/api/companies/investigate", send("POST", v));
+
+export const getSources = () =>
+  request<{ location: string; sources: LeadSource[]; status: RefreshStatus }>("/api/sources");
+export const setSourceEnabled = (key: string, enabled: boolean) =>
+  request<LeadSource[]>(`/api/sources/${key}`, send("PUT", { enabled }));
+export const saveSourceCredentials = (key: string, values: Record<string, string>) =>
+  request<LeadSource[]>(`/api/sources/${key}/credentials`, send("PUT", values));
+export const forgetSourceCredentials = (key: string) =>
+  request<LeadSource[]>(`/api/sources/${key}/credentials`, send("DELETE"));
+export const saveSearchLocation = (location: string) =>
+  request<{ location: string }>("/api/search-location", send("PUT", { location }));
+export const startRefresh = () => request<RefreshStatus>("/api/leads/refresh", send("POST"));
+export const getRefreshStatus = () => request<RefreshStatus>("/api/leads/status");

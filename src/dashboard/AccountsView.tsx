@@ -78,7 +78,7 @@ function EmailSection() {
     return run(async () => {
       setStatus(await saveSmtp({ host, port: Number(port), user, pass: pass || undefined }));
       setPass("");
-      return "Guardado en el llavero de macOS. Pulsa «Probar conexión» para comprobarlo.";
+      return "Guardado en el almacén seguro del sistema. Pulsa «Probar conexión» para comprobarlo.";
     });
   };
 
@@ -115,7 +115,7 @@ function EmailSection() {
           </button>
           <span className="spacer" />
           <button className="btn btn-danger" type="button" disabled={busy || !status?.connected}
-            onClick={() => window.confirm("¿Borrar la cuenta de email del llavero?") &&
+            onClick={() => window.confirm("¿Borrar la cuenta de email guardada?") &&
               run(async () => { setStatus(await removeSmtp()); setPass(""); return "Cuenta desconectada."; })}>
             Desconectar
           </button>
@@ -172,14 +172,14 @@ export function AccountsView() {
       <CvSection />
       <section className="card">
         <h2>Otras cuentas</h2>
-        <p className="muted"><strong>InfoJobs</strong> · próximamente: se conectará con OAuth2, escribiendo tu contraseña solo en la web de InfoJobs.</p>
+        <p className="muted"><strong>InfoJobs, Adzuna y Jooble</strong> · sus claves se guardan en la pestaña «Fuentes».</p>
         <p className="muted"><strong>LinkedIn</strong> · no se conecta, a propósito: automatizarlo viola sus condiciones y pone en riesgo tu cuenta. Se usa a mano desde la pestaña «LinkedIn».</p>
       </section>
       <section className="card">
         <h2>Dónde se guardan tus datos</h2>
         <p className="muted">
-          Las contraseñas van al <strong>llavero de macOS</strong> (cifrado por el sistema), nunca a un archivo, a GitHub ni de vuelta a esta pantalla.
-          El servidor solo acepta conexiones de este mismo Mac. Nada sale de tu equipo salvo el correo que tú envías.
+          Las contraseñas van al almacén seguro del sistema (<strong>llavero de macOS</strong>, o en Windows cifradas con tu usuario), nunca a .env, a GitHub ni de vuelta a esta pantalla.
+          El servidor solo acepta conexiones de este mismo ordenador. Nada sale de tu equipo salvo el correo que tú envías.
         </p>
       </section>
     </div>

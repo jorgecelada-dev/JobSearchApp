@@ -107,3 +107,11 @@ a.btn { text-decoration: none; display: inline-block; }
 .result { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
 .result p { margin: 4px 0; }
 .result .note { margin: 0 0 8px; }
+
+.card-off { opacity: .7; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+.switch input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.source-creds { margin-top: 8px; }
+.source-location { margin-top: 16px; }
+.note-inline { color: var(--muted); font-size: 13px; }
+.card-head .btn-primary { flex-shrink: 0; }

@@ -1,3 +1,5 @@
+import { SEARCH_TERMS as KEYWORDS } from "./searchTerms.js";
+
 /**
  * LinkedIn se usa SOLO a mano: no se accede a su web ni a su API. Aquí solo se construyen
  * enlaces de búsqueda que abres tú en tu navegador, y se guardan las ofertas que tú pegas.
@@ -10,12 +12,6 @@ export interface LinkedInSearchGroup {
   profile: string;
   searches: LinkedInSearch[];
 }
-
-const KEYWORDS: Record<string, string[]> = {
-  web_designer: ["diseñador gráfico", "diseñador web", "diseñador UX UI"],
-  extracurricular_teacher: ["profesor particular", "profesor extraescolares", "monitor extraescolares"],
-  sales: ["dependiente tienda", "comercial ventas", "asesor comercial"],
-};
 
 /** hours: 24 = último día, 168 = última semana, 0 = sin filtro de fecha. */
 export function linkedinSearchUrl(keywords: string, location: string, hours = 24): string {

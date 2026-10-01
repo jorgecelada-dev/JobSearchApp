@@ -10,6 +10,8 @@ datasource db {
 enum JobSource {
   infojobs
   jobtoday
+  adzuna
+  jooble
   company_site // ATS conocida o página de empleo parseada con IA
   linkedin_manual
 }
@@ -113,4 +115,15 @@ model Application {
 model Setting {
   key   String @id
   value String
+}
+
+/// Una fuente de leads (portales, webs de empresas…) con su interruptor y el resultado de la última búsqueda.
+/// Las claves de acceso NO van aquí: van al almacén de secretos del sistema.
+model LeadSource {
+  key         String    @id // companies | infojobs | adzuna | jooble
+  enabled     Boolean   @default(false)
+  lastRunAt   DateTime?
+  lastFound   Int?
+  lastCreated Int?
+  lastError   String?
 }
